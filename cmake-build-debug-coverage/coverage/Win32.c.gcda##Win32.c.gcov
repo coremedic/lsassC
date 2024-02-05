@@ -1,0 +1,91 @@
+        -:    0:Source:D:/projects/lsassC/src/Win32.c
+        -:    0:Graph:D:\projects\lsassC\cmake-build-debug-coverage\CMakeFiles\lsassC.dir\src\Win32.c.gcno
+        -:    0:Data:D:\projects\lsassC\cmake-build-debug-coverage\CMakeFiles\lsassC.dir\src\Win32.c.gcda
+        -:    0:Runs:1
+        -:    1:#include "Win32.h"
+        -:    2:
+function GetModuleHandleH called 1 returned 100% blocks executed 91%
+        1:    3:HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
+        -:    4:
+        1:    5:    PPEB					pPeb			= NULL;
+        1:    6:    PPEB_LDR_DATA			pLdr			= NULL;
+        1:    7:    PLDR_DATA_TABLE_ENTRY	pDte			= NULL;
+        1:    7-block  0
+        -:    8:
+        1:    9:    pPeb		= (PPEB)__readgsqword(0x60);
+        1:   10:    pLdr		= (PPEB_LDR_DATA)(pPeb->LoaderData);
+        1:   11:    pDte		= (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
+        -:   12:
+        -:   13:    // Return the handle of the local .exe image
+        1:   14:    if (!idModuleHash)
+        1:   14-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 1
+    #####:   15:        return (HMODULE)(pDte->InInitializationOrderLinks.Flink);
+    %%%%%:   15-block  0
+        -:   16:
+324368080:   17:    while (pDte) {
+        1:   17-block  0
+324368080:   17-block  1
+branch  0 taken 324368080
+branch  1 taken 0 (fallthrough)
+        -:   18:
+324368080:   19:        if (pDte->FullDllName.Buffer && pDte->FullDllName.Length < MAX_PATH) {
+324368080:   19-block  0
+branch  0 taken 270306734 (fallthrough)
+branch  1 taken 54061346
+270306734:   19-block  1
+branch  2 taken 270306734 (fallthrough)
+branch  3 taken 0
+        -:   20:
+270306734:   21:            CHAR	cLDllName	[MAX_PATH]	= { 0 };
+270306734:   22:            DWORD	x						= 0x00;
+        -:   23:
+3243680809:   24:            while (pDte->FullDllName.Buffer[x]) {
+270306734:   24-block  0
+3243680809:   24-block  1
+branch  0 taken 2973374075
+branch  1 taken 270306734 (fallthrough)
+        -:   25:
+2973374075:   26:                CHAR	wC	= pDte->FullDllName.Buffer[x];
+        -:   27:
+        -:   28:                // Convert to lowercase
+2973374075:   29:                if (wC >= 'A' && wC <= 'Z')
+2973374075:   29-block  0
+branch  0 taken 2594944647 (fallthrough)
+branch  1 taken 378429428
+2594944647:   29-block  1
+branch  2 taken 1081226940 (fallthrough)
+branch  3 taken 1513717707
+1081226940:   30:                    cLDllName[x] = wC - 'A' + 'a';
+1081226940:   30-block  0
+        -:   31:                // Copy other characters (numbers, special characters ...)
+        -:   32:                else
+1892147135:   33:                    cLDllName[x] = wC;
+1892147135:   33-block  0
+        -:   34:
+2973374075:   35:                x++;
+2973374075:   35-block  0
+        -:   36:            }
+        -:   37:
+270306734:   38:            cLDllName[x] = '\0';
+        -:   39:
+270306734:   40:            if (IDENTITY(pDte->FullDllName.Buffer) == idModuleHash || IDENTITY(cLDllName) == idModuleHash)
+270306734:   40-block  0
+branch  0 taken 270306734 (fallthrough)
+branch  1 taken 0
+270306734:   40-block  1
+branch  2 taken 1 (fallthrough)
+branch  3 taken 270306733
+        1:   41:                return (HMODULE)(pDte->InInitializationOrderLinks.Flink);
+        1:   41-block  0
+        -:   42:        }
+        -:   43:
+        -:   44:        // Move to the next node in the linked list
+324368079:   45:        pDte = *(PLDR_DATA_TABLE_ENTRY*)(pDte);
+324368079:   45-block  0
+        -:   46:    }
+        -:   47:
+    #####:   48:    return NULL;
+    %%%%%:   48-block  0
+        -:   49:}
