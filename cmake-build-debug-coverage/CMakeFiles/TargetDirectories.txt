@@ -1,3 +1,0 @@
-D:/projects/lsassC/cmake-build-debug-coverage/CMakeFiles/lsassC.dir
-D:/projects/lsassC/cmake-build-debug-coverage/CMakeFiles/edit_cache.dir
-D:/projects/lsassC/cmake-build-debug-coverage/CMakeFiles/rebuild_cache.dir

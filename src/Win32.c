@@ -12,7 +12,6 @@ HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
     pLdr		= (PPEB_LDR_DATA)(pPeb->LoaderData);
     pDte		= (PLDR_DATA_TABLE_ENTRY)(pLdr->InMemoryOrderModuleList.Flink);
 
-    // Return the handle of the local .exe image
     if (!idModuleHash)
         return (HMODULE)(pDte->InInitializationOrderLinks.Flink);
 
@@ -27,10 +26,8 @@ HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
 
                 CHAR	wC	= pDte->FullDllName.Buffer[x];
 
-                // Convert to lowercase
                 if (wC >= 'A' && wC <= 'Z')
                     cLDllName[x] = wC - 'A' + 'a';
-                // Copy other characters (numbers, special characters ...)
                 else
                     cLDllName[x] = wC;
 
@@ -44,7 +41,6 @@ HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
                 return (HMODULE)(pDte->InInitializationOrderLinks.Flink);
         }
 
-        // Move to the next node in the linked list
         pDte = *(PLDR_DATA_TABLE_ENTRY*)(pDte);
     }
 

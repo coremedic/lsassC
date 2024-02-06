@@ -18,18 +18,18 @@ identity_t NtQuerySystemInformationHash  = IDENTITY("NtQuerySystemInformation");
 identity_t NtReadVirtualMemoryHash       = IDENTITY("NtReadVirtualMemory");
 identity_t NtOpenProcessTokenHash        = IDENTITY("NtOpenProcessToken");
 
-identity_t Win32uDllHash                 = IDENTITY(L"win32u.dll");
+identity_t Win32uDllHash                 = IDENTITY("win32u.dll");
 identity_t NtDllDllHash                  = IDENTITY("ntdll.dll");
 
 typedef struct _MODULE_CONFIG
 {
 
-    PDWORD      pdwArrayOfAddresses; // The VA of the array of addresses of the DLL's exported functions    [BaseAddress + IMAGE_EXPORT_DIRECTORY.AddressOfFunctions]
-    PDWORD      pdwArrayOfNames;     // The VA of the array of names of the DLL's exported functions        [BaseAddress + IMAGE_EXPORT_DIRECTORY.AddressOfNames]
-    PWORD       pwArrayOfOrdinals;   // The VA of the array of ordinals of the DLL's exported functions     [BaseAddress + IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals]
-    DWORD       dwNumberOfNames;     // The number of exported functions of the DLL                         [IMAGE_EXPORT_DIRECTORY.NumberOfNames]
-    ULONG_PTR   uModule;             // The base address of the DLL - required to calculate future VAs      [BaseAddress]
-    BOOLEAN     bInitialized;        // Set to TRUE if all elements are initialized
+    PDWORD      pdwArrayOfAddresses;
+    PDWORD      pdwArrayOfNames;
+    PWORD       pwArrayOfOrdinals;
+    DWORD       dwNumberOfNames;
+    ULONG_PTR   uModule;
+    BOOLEAN     bInitialized;
 
 } MODULE_CONFIG, *PMODULE_CONFIG;
 
@@ -105,15 +105,13 @@ BOOL GetSyscallInst(OUT PVOID* ppSyscallInstAddress) {
             continue;
         printf("g_Win32uConf.dwNumberOfNames: %lu\n", g_Win32uConf.dwNumberOfNames);
         for (DWORD offset = 0; offset < STUB_SIZE; offset++) {
-            // Validate pointer before dereferencing
             unsigned short* pOpcode = (unsigned short*)((ULONG_PTR)pFuncAddress + offset);
             BYTE* pRetOpcode = (BYTE*)((ULONG_PTR)pFuncAddress + offset + sizeof(unsigned short));
 
-            // Safely check for 'syscall' instruction pattern
             if (*pOpcode == (0x052A ^ 0x25) && *pRetOpcode == RET_OPCODE) {
                 if (sysCnt == rndIdx) {
                     *ppSyscallInstAddress = (PVOID)((ULONG_PTR)pFuncAddress + offset);
-                    return TRUE;  // Successfully found and validated syscall instruction
+                    return TRUE;
                 }
                 sysCnt++;
             }

@@ -1,7 +1,0 @@
-# ninja log v5
-4	572	7288681728097381	CMakeFiles/lsassC.dir/src/main.c.obj	afba23c8837f7a82
-2	507	7288683309579790	CMakeFiles/lsassC.dir/src/Syscalls.c.obj	343e2b4ed21d5294
-6	584	7288681728212988	CMakeFiles/lsassC.dir/src/Win32.c.obj	1ba4749561614f74
-507	559	7288683310077428	lsassC.exe	743e66d6dee6a254
-6	564	7288695028652042	CMakeFiles/lsassC.dir/src/Win32.c.obj	1ba4749561614f74
-4	893	7288695031939465	CMakeFiles/lsassC.dir/src/main.c.obj	afba23c8837f7a82
