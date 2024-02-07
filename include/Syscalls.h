@@ -34,5 +34,6 @@ extern BOOL InitSyscalls(OUT PSYSCALL_API SysApi);
 
 extern VOID SetSsn(IN DWORD dwSsn, IN PVOID pSyscallInstAddress);
 #define SET_SYSCALL(Syscall)(SetSsn((DWORD)Syscall.dwSsn, (PVOID)Syscall.pSyscallInstAddress))
+extern RunSyscall();
 
 #endif //SYSCALLS_H

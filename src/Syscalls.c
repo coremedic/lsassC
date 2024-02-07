@@ -38,8 +38,8 @@ typedef struct _MODULE_CONFIG
 } MODULE_CONFIG, *PMODULE_CONFIG;
 
 // Global
-MODULE_CONFIG   g_NtdllConf   = {nullptr};
-MODULE_CONFIG   g_Win32uConf  = {nullptr};
+MODULE_CONFIG   g_NtdllConf   = {NULL};
+MODULE_CONFIG   g_Win32uConf  = {NULL};
 
 BOOL InitModuleConfig(OUT PMODULE_CONFIG pModuleConfig, IN ULONG_PTR ulBaseAddress) {
     PIMAGE_NT_HEADERS       pImageNtHeaders = NULL;
@@ -133,7 +133,7 @@ BOOL FetchNtSyscall(IN unsigned long long dwSyscallHash, OUT PSYSCALL pNtSys) {
             return FALSE;
         }
     }
-    if ((pNtSys->dwSyscallHash = dwSyscallHash) == 0) {
+    if ((pNtSys->dwSyscallHash = dwSyscallHash) == NULL) {
 #ifdef DEBUG
         printf("[!] pNtSys->dwSyscallHash is uninitialized\n");
 #endif
@@ -227,7 +227,7 @@ BOOL FetchNtSyscall(IN unsigned long long dwSyscallHash, OUT PSYSCALL pNtSys) {
 
     }
 
-    if (pNtSys->dwSsn == 0) {
+    if (pNtSys->dwSsn == NULL) {
         return FALSE;
     }
 
@@ -243,9 +243,9 @@ BOOL InitSyscalls(OUT PSYSCALL_API SysApi) {
         return FALSE;
     }
 
-    if(!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
+    /*if(!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
         return FALSE;
-    }
+    }*/
 
 
     SysApi->bInit = TRUE;

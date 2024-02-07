@@ -1,18 +1,27 @@
-[bits 64]
+.x64
+.model flat, fastcall
+;option casemap:none
 
-section .data
-    wSystemCall       dd 0
-    qSyscallInsAdress dq 0
+.data
 
-section .text
-    global SetSsn
+wSystemCall       DWORD   0
+qSyscallInsAdress QWORD   0
 
-SetSsn:
-    push rbp
-    mov rbp, rsp
-    mov [wSystemCall], ecx
-    mov [qSyscallInsAdress], rdx
+.code
 
-    mov rsp, rbp
-    pop rbp
+SetSsn PROC
+    mov eax, wSystemCall
+    mov qSyscallInsAdress, 0
+    mov wSystemCall, ecx
+    mov qSyscallInsAdress, rdx
     ret
+SetSsn ENDP
+
+RunSyscall PROC
+    mov r10, rcx
+    mov eax, wSystemCall
+    jmp qword ptr [qSyscallInsAdress]
+    ret
+RunSyscall ENDP
+
+end
