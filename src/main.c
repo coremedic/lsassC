@@ -5,6 +5,8 @@
 
 #pragma comment (lib, "shell32.lib")
 
+SYSCALL_API g_SyscallApi = {};
+
 VOID AddWin32uToIat() {
 
     WCHAR szPath[MAX_PATH] = { 0 };
@@ -16,7 +18,10 @@ int main() {
     BOOL    bResult     = FALSE;
 
     AddWin32uToIat();
-    bResult = GetSyscallInst(ppInstAddr);
-    printf("[%d] %p\n", bResult, ppInstAddr);
+    bResult = InitSyscalls(&g_SyscallApi);
+
+    SET_SYSCALL(g_SyscallApi.NtOpenProcess);
+
+    printf("%d\n", bResult);
     return 0;
 }

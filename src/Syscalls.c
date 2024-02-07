@@ -4,6 +4,10 @@
 
 #define STUB_SIZE       0x20
 
+#define UP              (-1 * STUB_SIZE)
+#define DOWN            STUB_SIZE
+#define SEARCH_RANGE    0xFF
+
 #define MOV1_OPCODE     0x4C
 #define R10_OPCODE      0x8B
 #define RCX_OPCODE      0xD1
@@ -37,7 +41,7 @@ typedef struct _MODULE_CONFIG
 MODULE_CONFIG   g_NtdllConf   = {nullptr};
 MODULE_CONFIG   g_Win32uConf  = {nullptr};
 
-BOOL InitModuleConfigs(OUT PMODULE_CONFIG pModuleConfig, IN ULONG_PTR ulBaseAddress) {
+BOOL InitModuleConfig(OUT PMODULE_CONFIG pModuleConfig, IN ULONG_PTR ulBaseAddress) {
     PIMAGE_NT_HEADERS       pImageNtHeaders = NULL;
     PIMAGE_EXPORT_DIRECTORY pImageExportDir = NULL;
 
@@ -85,10 +89,11 @@ BOOL GetSyscallInst(OUT PVOID* ppSyscallInstAddress) {
     INT rndIdx = GenerateRandomInt() % 0x10,
         sysCnt = 0;
 
-    printf("Win32uDllHash: %llu\n", Win32uDllHash);
-
     if (!g_Win32uConf.bInitialized) {
-        if (!InitModuleConfigs(&g_Win32uConf, (ULONG_PTR)GetModuleHandleH(Win32uDllHash))) {
+        if (!InitModuleConfig(&g_Win32uConf, (ULONG_PTR)GetModuleHandleH(Win32uDllHash))) {
+#ifdef DEBUG
+            printf("[!] InitModuleConfig failed with error: %llu\n", GetLastError());
+#endif
             return FALSE;
         }
     }
@@ -103,7 +108,6 @@ BOOL GetSyscallInst(OUT PVOID* ppSyscallInstAddress) {
 
         if (pcFuncName == NULL || pFuncAddress == NULL)
             continue;
-        printf("g_Win32uConf.dwNumberOfNames: %lu\n", g_Win32uConf.dwNumberOfNames);
         for (DWORD offset = 0; offset < STUB_SIZE; offset++) {
             unsigned short* pOpcode = (unsigned short*)((ULONG_PTR)pFuncAddress + offset);
             BYTE* pRetOpcode = (BYTE*)((ULONG_PTR)pFuncAddress + offset + sizeof(unsigned short));
@@ -111,17 +115,139 @@ BOOL GetSyscallInst(OUT PVOID* ppSyscallInstAddress) {
             if (*pOpcode == (0x052A ^ 0x25) && *pRetOpcode == RET_OPCODE) {
                 if (sysCnt == rndIdx) {
                     *ppSyscallInstAddress = (PVOID)((ULONG_PTR)pFuncAddress + offset);
-                    return TRUE;
+                    break;
                 }
                 sysCnt++;
             }
+        }
+        if (*ppSyscallInstAddress) {
+            return TRUE;
         }
     }
     return FALSE;
 }
 
-// BOOL InitSyscalls(OUT PSYSCALL_API Syscalls) {
-//     if (Syscalls->bInit) {
-//         return TRUE;
-//     }
-// }
+BOOL FetchNtSyscall(IN unsigned long long dwSyscallHash, OUT PSYSCALL pNtSys) {
+    if (!g_NtdllConf.bInitialized) {
+        if (!InitModuleConfig(&g_NtdllConf, (ULONG_PTR)GetModuleHandleH(NtDllDllHash))) {
+            return FALSE;
+        }
+    }
+    if ((pNtSys->dwSyscallHash = dwSyscallHash) == 0) {
+#ifdef DEBUG
+        printf("[!] pNtSys->dwSyscallHash is uninitialized\n");
+#endif
+        return FALSE;
+    }
+
+    for (DWORD i = 0; i < g_NtdllConf.dwNumberOfNames; i++) {
+
+        PCHAR pcFuncName    = (PCHAR)(g_NtdllConf.uModule + g_NtdllConf.pdwArrayOfNames[i]);
+        PVOID pFuncAddress  = (PVOID)(g_NtdllConf.uModule + g_NtdllConf.pdwArrayOfAddresses[g_NtdllConf.pwArrayOfOrdinals[i]]);
+
+#ifdef DEBUG
+        printf("[i] Syscall: %s Syscall Hash: %llu Hash: %llu\n", pcFuncName, IdentityRuntime(pcFuncName), dwSyscallHash);
+#endif
+        if (IdentityRuntime(pcFuncName) == dwSyscallHash) {
+            if (*((PBYTE)pFuncAddress) == MOV1_OPCODE
+                && *((PBYTE)pFuncAddress + 1) == R10_OPCODE
+                && *((PBYTE)pFuncAddress + 2) == RCX_OPCODE
+                && *((PBYTE)pFuncAddress + 3) == MOV2_OPCODE
+                && *((PBYTE)pFuncAddress + 6) == 0x00
+                && *((PBYTE)pFuncAddress + 7) == 0x00) {
+
+                BYTE    high   = *((PBYTE)pFuncAddress + 5);
+                BYTE    low    = *((PBYTE)pFuncAddress + 4);
+                pNtSys->dwSsn = (high << 8) | low;
+                break;
+            }
+
+            if (*((PBYTE)pFuncAddress) == JMP_OPCODE) {
+
+                for (WORD idx = 1; idx <= SEARCH_RANGE; idx++) {
+                    if (*((PBYTE)pFuncAddress + idx * DOWN) == MOV1_OPCODE
+                        && *((PBYTE)pFuncAddress + 1 + idx * DOWN) == R10_OPCODE
+                        && *((PBYTE)pFuncAddress + 2 + idx * DOWN) == RCX_OPCODE
+                        && *((PBYTE)pFuncAddress + 3 + idx * DOWN) == MOV2_OPCODE
+                        && *((PBYTE)pFuncAddress + 6 + idx * DOWN) == 0x00
+                        && *((PBYTE)pFuncAddress + 7 + idx * DOWN) == 0x00) {
+
+                        BYTE    high   = *((PBYTE)pFuncAddress + 5 + idx * DOWN);
+                        BYTE    low    = *((PBYTE)pFuncAddress + 4 + idx * DOWN);
+                        pNtSys->dwSsn = (high << 8) | low - idx;
+                        break;
+                    }
+                    if (*((PBYTE)pFuncAddress + idx * UP) == MOV1_OPCODE
+                        && *((PBYTE)pFuncAddress + 1 + idx * UP) == R10_OPCODE
+                        && *((PBYTE)pFuncAddress + 2 + idx * UP) == RCX_OPCODE
+                        && *((PBYTE)pFuncAddress + 3 + idx * UP) == MOV2_OPCODE
+                        && *((PBYTE)pFuncAddress + 6 + idx * UP) == 0x00
+                        && *((PBYTE)pFuncAddress + 7 + idx * UP) == 0x00) {
+
+                        BYTE    high   = *((PBYTE)pFuncAddress + 5 + idx * UP);
+                        BYTE    low    = *((PBYTE)pFuncAddress + 4 + idx * UP);
+                        pNtSys->dwSsn = (high << 8) | low + idx;
+                        break;
+                    }
+                }
+            }
+
+            if (*((PBYTE)pFuncAddress + 3) == JMP_OPCODE) {
+
+                for (WORD idx = 1; idx <= SEARCH_RANGE; idx++) {
+                    if (*((PBYTE)pFuncAddress + idx * DOWN) == MOV1_OPCODE
+                        && *((PBYTE)pFuncAddress + 1 + idx * DOWN) == R10_OPCODE
+                        && *((PBYTE)pFuncAddress + 2 + idx * DOWN) == RCX_OPCODE
+                        && *((PBYTE)pFuncAddress + 3 + idx * DOWN) == MOV2_OPCODE
+                        && *((PBYTE)pFuncAddress + 6 + idx * DOWN) == 0x00
+                        && *((PBYTE)pFuncAddress + 7 + idx * DOWN) == 0x00) {
+
+                        BYTE    high   = *((PBYTE)pFuncAddress + 5 + idx * DOWN);
+                        BYTE    low    = *((PBYTE)pFuncAddress + 4 + idx * DOWN);
+                        pNtSys->dwSsn = (high << 8) | low - idx;
+                        break;
+                    }
+                    if (*((PBYTE)pFuncAddress + idx * UP) == MOV1_OPCODE
+                        && *((PBYTE)pFuncAddress + 1 + idx * UP) == R10_OPCODE
+                        && *((PBYTE)pFuncAddress + 2 + idx * UP) == RCX_OPCODE
+                        && *((PBYTE)pFuncAddress + 3 + idx * UP) == MOV2_OPCODE
+                        && *((PBYTE)pFuncAddress + 6 + idx * UP) == 0x00
+                        && *((PBYTE)pFuncAddress + 7 + idx * UP) == 0x00) {
+
+                        BYTE    high   = *((PBYTE)pFuncAddress + 5 + idx * UP);
+                        BYTE    low    = *((PBYTE)pFuncAddress + 4 + idx * UP);
+                        pNtSys->dwSsn = (high << 8) | low + idx;
+                        break;
+                    }
+                }
+            }
+
+            break;
+        }
+
+    }
+
+    if (pNtSys->dwSsn == 0) {
+        return FALSE;
+    }
+
+    return GetSyscallInst(&pNtSys->pSyscallInstAddress);
+}
+
+BOOL InitSyscalls(OUT PSYSCALL_API SysApi) {
+    if (SysApi->bInit) {
+        return TRUE;
+    }
+
+    if(!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
+        return FALSE;
+    }
+
+    if(!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
+        return FALSE;
+    }
+
+
+    SysApi->bInit = TRUE;
+    return TRUE;
+}

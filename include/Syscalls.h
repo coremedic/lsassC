@@ -15,12 +15,10 @@ extern identity_t NtOpenProcessTokenHash;
 extern identity_t Win32uDllHash;
 extern identity_t NtDllDllHash;
 
-extern BOOL GetSyscallInst(OUT PVOID* ppSyscallInstAddress);
-
 typedef struct _SYSCALL {
-    DWORD dwSsn;
-    DWORD dwSyscallHash;
-    PVOID pSyscallInstAddress;
+    DWORD               dwSsn;
+    unsigned long long  dwSyscallHash;
+    PVOID               pSyscallInstAddress;
 } SYSCALL, *PSYSCALL;
 
 typedef struct _SYSCALL_API {
@@ -32,5 +30,9 @@ typedef struct _SYSCALL_API {
     SYSCALL NtOpenProcessToken;
     BOOL    bInit;
 } SYSCALL_API, *PSYSCALL_API;
+extern BOOL InitSyscalls(OUT PSYSCALL_API SysApi);
+
+extern VOID SetSsn(IN DWORD dwSsn, IN PVOID pSyscallInstAddress);
+#define SET_SYSCALL(Syscall)(SetSsn((DWORD)Syscall.dwSsn, (PVOID)Syscall.pSyscallInstAddress))
 
 #endif //SYSCALLS_H

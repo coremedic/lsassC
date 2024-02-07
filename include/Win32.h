@@ -2,17 +2,12 @@
 #define WIN32_H
 
 #include <windows.h>
+#include "Common.h"
 #include "identity.h"
 
 extern HMODULE GetModuleHandleH(IN identity_t idModuleHash);
 
 typedef PVOID PACTIVATION_CONTEXT;
-
-typedef struct _UNICODE_STRING {
-	USHORT Length;
-	USHORT MaximumLength;
-	PWSTR  Buffer;
-} UNICODE_STRING, *PUNICODE_STRING;
 
 typedef struct _PEB_LDR_DATA {
 	ULONG                   Length;

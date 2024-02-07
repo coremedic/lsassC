@@ -1,7 +1,5 @@
 #include "Win32.h"
 
-#include <stdio.h>
-
 HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
 
     PPEB					pPeb			= NULL;
@@ -36,9 +34,10 @@ HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
 
             cLDllName[x] = '\0';
 
-            printf("pDte->FullDllName.Buffer: %ls pDte->FullDllName.Buffer HASH: %llu\n", pDte->FullDllName.Buffer, IDENTITY(pDte->FullDllName.Buffer));
-            if (IDENTITY(pDte->FullDllName.Buffer) == idModuleHash || IDENTITY(cLDllName) == idModuleHash)
+            char* utf8String = UnicodeStringToUtf8(&pDte->FullDllName);
+            if (IdentityRuntime(utf8String) == idModuleHash) {
                 return (HMODULE)(pDte->InInitializationOrderLinks.Flink);
+            }
         }
 
         pDte = *(PLDR_DATA_TABLE_ENTRY*)(pDte);
@@ -46,3 +45,4 @@ HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
 
     return NULL;
 }
+
