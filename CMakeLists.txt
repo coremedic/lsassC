@@ -19,6 +19,8 @@ add_executable(lsassC src/main.c
         include/Win32.h
         src/Common.c
         include/Common.h
+        src/GetProc.c
+        include/GetProc.h
 )
 
 set(ASM_SOURCE_FILES src/Syscalls.asm)
@@ -30,7 +32,6 @@ foreach(ASM_SRC IN LISTS ASM_SOURCE_FILES)
             COMMAND jwasm -win64 -coff -Fo${ASM_OBJ} ${CMAKE_CURRENT_SOURCE_DIR}/${ASM_SRC}
             DEPENDS ${ASM_SRC}
             COMMENT "Assembling ${ASM_SRC}")
-    # Link the object file with your executable
     target_sources(lsassC PRIVATE ${ASM_OBJ})
 endforeach()
 

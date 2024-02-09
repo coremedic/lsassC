@@ -2,10 +2,9 @@
 #include <shlobj.h>
 
 #include "Syscalls.h"
+#include "GetProc.h"
 
 #pragma comment (lib, "shell32.lib")
-
-#define NT_SUCCESS(STATUS) (((NTSTATUS)(STATUS)) >= 0)
 
 SYSCALL_API g_SyscallApi = { 0 };
 
@@ -23,10 +22,7 @@ int main() {
     AddWin32uToIat();
     bResult = InitSyscalls(&g_SyscallApi);
 
-    SET_SYSCALL(g_SyscallApi.NtOpenProcess);
-    if (!NT_SUCCESS(ntStatus = RunSyscall())) {
-        printf("We did it!\n");
-    }
+    GetProcHandle(NULL, NULL);
 
     printf("%d\n", bResult);
     return 0;

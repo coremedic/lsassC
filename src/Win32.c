@@ -17,23 +17,6 @@ HMODULE GetModuleHandleH(IN identity_t idModuleHash) {
 
         if (pDte->FullDllName.Buffer && pDte->FullDllName.Length < MAX_PATH) {
 
-            CHAR	cLDllName	[MAX_PATH]	= { 0 };
-            DWORD	x						= 0x00;
-
-            while (pDte->FullDllName.Buffer[x]) {
-
-                CHAR	wC	= pDte->FullDllName.Buffer[x];
-
-                if (wC >= 'A' && wC <= 'Z')
-                    cLDllName[x] = wC - 'A' + 'a';
-                else
-                    cLDllName[x] = wC;
-
-                x++;
-            }
-
-            cLDllName[x] = '\0';
-
             char* utf8String = UnicodeStringToUtf8(&pDte->FullDllName);
             if (IdentityRuntime(utf8String) == idModuleHash) {
                 return (HMODULE)(pDte->InInitializationOrderLinks.Flink);

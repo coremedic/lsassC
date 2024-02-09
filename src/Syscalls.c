@@ -243,10 +243,9 @@ BOOL InitSyscalls(OUT PSYSCALL_API SysApi) {
         return FALSE;
     }
 
-    /*if(!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
+    if(!FetchNtSyscall(NtQuerySystemInformationHash, &SysApi->NtQuerySystemInformation)) {
         return FALSE;
-    }*/
-
+    }
 
     SysApi->bInit = TRUE;
     return TRUE;

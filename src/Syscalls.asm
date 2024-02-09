@@ -1,6 +1,10 @@
 .x64
 .model flat, fastcall
-;option casemap:none
+option casemap:none
+option win64:1
+
+public SetSsn
+public RunSyscall
 
 .data
 
