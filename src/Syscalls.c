@@ -239,11 +239,19 @@ BOOL InitSyscalls(OUT PSYSCALL_API SysApi) {
         return TRUE;
     }
 
-    if(!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
+    if (!FetchNtSyscall(NtOpenProcessHash, &SysApi->NtOpenProcess)) {
         return FALSE;
     }
 
-    if(!FetchNtSyscall(NtQuerySystemInformationHash, &SysApi->NtQuerySystemInformation)) {
+    if (!FetchNtSyscall(NtQuerySystemInformationHash, &SysApi->NtQuerySystemInformation)) {
+        return FALSE;
+    }
+
+    if (!FetchNtSyscall(NtOpenProcessTokenHash, &SysApi->NtOpenProcessToken)) {
+        return FALSE;
+    }
+
+    if (!FetchNtSyscall(NtAdjustPrivilegesTokenHash, &SysApi->NtAdjustPrivilegesToken)) {
         return FALSE;
     }
 

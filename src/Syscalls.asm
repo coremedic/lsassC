@@ -5,27 +5,35 @@ option win64:1
 
 public SetSsn
 public RunSyscall
+public RunSyscall6
 
 .data
 
 wSystemCall       DWORD   0
-qSyscallInsAdress QWORD   0
+qSyscallInsAddress QWORD   0
 
 .code
 
 SetSsn PROC
     mov eax, wSystemCall
-    mov qSyscallInsAdress, 0
+    mov qSyscallInsAddress, 0
     mov wSystemCall, ecx
-    mov qSyscallInsAdress, rdx
+    mov qSyscallInsAddress, rdx
     ret
 SetSsn ENDP
 
 RunSyscall PROC
     mov r10, rcx
     mov eax, wSystemCall
-    jmp qword ptr [qSyscallInsAdress]
+    jmp qword ptr [qSyscallInsAddress]
     ret
 RunSyscall ENDP
+
+RunSyscall6 PROC
+    mov r10, rcx
+    mov eax, wSystemCall
+    jmp qword ptr [qSyscallInsAddress]
+    ret
+RunSyscall6 ENDP
 
 end

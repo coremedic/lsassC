@@ -19,6 +19,7 @@ extern identity_t NtDllDllHash;
 #define STATUS_UNSUCCESSFUL          0xC0000001
 #define STATUS_INFO_LENGTH_MISMATCH  0xC0000004
 #define NT_SUCCESS(STATUS) (((NTSTATUS)(STATUS)) >= 0)
+#define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 
 typedef struct _SYSCALL {
     DWORD               dwSsn;
@@ -41,5 +42,6 @@ extern SYSCALL_API g_SyscallApi;
 extern VOID SetSsn(IN DWORD dwSsn, IN PVOID pSyscallInstAddress);
 #define SET_SYSCALL(Syscall)(SetSsn((DWORD)Syscall.dwSsn, (PVOID)Syscall.pSyscallInstAddress))
 extern RunSyscall(PVOID pArg1, PVOID pArg2, PVOID pArg3, PVOID pArg4); // 4 args
+extern RunSyscall6(PVOID pArg1, PVOID pArg2, PVOID pArg3, PVOID pArg4, PVOID pArg5, PVOID pArg6); // 6 args
 
 #endif //SYSCALLS_H

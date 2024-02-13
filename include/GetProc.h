@@ -8,7 +8,8 @@
 #include "identity.h"
 
 extern identity_t lsassHash;
-extern NTSTATUS GetProcHandle(IN DWORD ProcHash, OUT HANDLE *hProc);
+extern NTSTATUS GetProcHandle(IN unsigned long long ProcHash, OUT HANDLE *hProc);
+extern BOOL SetDebugPriv();
 
 typedef struct _OBJECT_ATTRIBUTES {
     ULONG           Length;

