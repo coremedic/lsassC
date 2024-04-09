@@ -16,18 +16,23 @@ add_compile_options(
 )
 
 add_link_options(
-        -Wl, -s, --no-seh
-        -Wl, --as-needed, --no-whole-archive
+        -Wl,-s,--no-seh
+        -Wl,--as-needed,--no-whole-archive
 )
 
-file(GLOB_RECURSE ALL_CXX_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
-file(GLOB_RECURSE ALL_C_FILES "${PROJECT_SOURCE_DIR}/src/*.c")
-file(GLOB_RECURSE ALL_CXX_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.hpp")
-file(GLOB_RECURSE ALL_C_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.h")
+#file(GLOB_RECURSE ALL_CXX_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+#file(GLOB_RECURSE ALL_C_FILES "${PROJECT_SOURCE_DIR}/src/*.c")
+#file(GLOB_RECURSE ALL_CXX_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.hpp")
+#file(GLOB_RECURSE ALL_C_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.h")
 
-set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
+#set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
 
-add_executable(lsassC${ALL_CXX_FILES} ${ALL_C_FILES} ${ALL_CXX_HEADER_FILES} ${ALL_C_HEADER_FILES})
+add_executable(
+        lsassC
+        src/Main.c
+        include/Macros.h
+        include/ProxyCaller.h
+    )
 
 set(ASM_SOURCE_FILES asm/x64/ProxyCaller.asm)
 
