@@ -12,7 +12,7 @@ endif()
 add_compile_options(
         -Os -s -fno-asynchronous-unwind-tables -fno-ident
         -falign-functions=1 -falign-jumps=1 -falign-labels=1
-        -masm=intel -fpermissive
+        -fpack-struct=8 -masm=intel -fpermissive
 )
 
 add_link_options(
@@ -20,19 +20,21 @@ add_link_options(
         -Wl,--as-needed,--no-whole-archive
 )
 
-#file(GLOB_RECURSE ALL_CXX_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
-#file(GLOB_RECURSE ALL_C_FILES "${PROJECT_SOURCE_DIR}/src/*.c")
-#file(GLOB_RECURSE ALL_CXX_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.hpp")
-#file(GLOB_RECURSE ALL_C_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.h")
+file(GLOB_RECURSE ALL_CXX_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE ALL_C_FILES "${PROJECT_SOURCE_DIR}/src/*.c")
+file(GLOB_RECURSE ALL_CXX_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.hpp")
+file(GLOB_RECURSE ALL_C_HEADER_FILES "${PROJECT_SOURCE_DIR}/include/*.h")
 
-#set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
+set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
 
 add_executable(
         lsassC
         src/Main.c
         include/Macros.h
         include/ProxyCaller.h
-    )
+        include/Syscalls.h
+        include/Constexpr.h
+)
 
 set(ASM_SOURCE_FILES asm/x64/ProxyCaller.asm)
 

@@ -11,6 +11,15 @@ typedef struct _NTALLOCATEVIRTUALMEMORY_ARGS {
     ULONG permissions;                   // ULONG Protect - PAGE_EXECUTE_READ - 0x20 - stack pointer
 } NTALLOCATEVIRTUALMEMORY_ARGS, *PNTALLOCATEVIRTUALMEMORY_ARGS;
 
+typedef struct _NTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS {
+    UINT_PTR    pSyscallInstruction;
+    HANDLE      hProcess;
+    PVOID*      ppBaseAddress;
+    PSIZE_T     pRegionSize;
+    ULONG       ulProtect;
+    DWORD       dwSsn;
+} NTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS, *PNTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS;
+
 EXTERN_C VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work);
 
 
