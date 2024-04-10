@@ -9,8 +9,8 @@
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 
 // Section macros
-#define TEXT   __attribute__((section(".text")))
-#define GLOBAL __attribute__((section(".global")))
+#define SEC_TEXT   __attribute__((section(".text")))
+#define SEC_GLOBAL __attribute__((section(".global")))
 
 // Casting macros
 #define C_PTR(x) ((PVOID)    (x))

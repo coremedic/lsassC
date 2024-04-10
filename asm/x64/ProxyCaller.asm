@@ -4,9 +4,7 @@ option casemap:none
 option win64:1
 
 public WorkCallback
-
-public SetSyscallServiceNumber
-
+public ProxyIndirect
 
 .data
 
