@@ -22,12 +22,13 @@ int main() {
         return 0;
     }
 
+
     NTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS ntAllocateVirtualMemoryArgs = {NULL};
     ntAllocateVirtualMemoryArgs.pSyscallInstruction = (UINT_PTR)g_syscallApi.NtAllocateVirtualMemory.pSyscallInstructionAddress;
-    ntAllocateVirtualMemoryArgs.hProcess            = NtCurrentProcess();
+    ntAllocateVirtualMemoryArgs.hProcess            = (HANDLE)-1;
     ntAllocateVirtualMemoryArgs.ppBaseAddress       = &allocatedAddress;
     ntAllocateVirtualMemoryArgs.pRegionSize         = &allocatedsize;
-    ntAllocateVirtualMemoryArgs.ulProtect           = PAGE_EXECUTE_READ;
+    ntAllocateVirtualMemoryArgs.ulProtect           = PAGE_EXECUTE_READWRITE;
     ntAllocateVirtualMemoryArgs.dwSsn               = g_syscallApi.NtAllocateVirtualMemory.dwSsn;
 
     __typeof__(TpAllocWork)*    TpAllocWork     = (PVOID)GetProcAddress(GetModuleHandleA("ntdll.dll"), "TpAllocWork");

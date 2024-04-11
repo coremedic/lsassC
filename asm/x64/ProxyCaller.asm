@@ -37,17 +37,19 @@ WorkCallback ENDP
 
 ProxyIndirect PROC
     mov rbx, rdx          ; Back up struct to rbx
-    mov rax, [rbx]        ; UINT_PTR    pSyscallInstruction
-    mov rcx, [rbx + 08h]  ; HANDLE      hProcess
+    mov r11, [rbx]        ; UINT_PTR    pSyscallInstruction
+    ;mov rcx, [rbx + 08h]  ; HANDLE      hProcess
     mov rdx, [rbx + 010h] ; PVOID*      ppBaseAddress
     xor r8,  r8           ; ULONG_PTR   ZeroBits (set to 0)
     mov r9,  [rbx + 018h] ; PSIZE_T     pRegionSize
     mov r10, [rbx + 020h] ; ULONG       ulProtect
-    mov eax, [rbx + 028h] ; DWORD       dwSsn
+   ; mov eax, [rbx + 024h] ; DWORD       dwSsn
     mov [rsp + 030h], r10 ; Stack pointer for ulProtect
     mov r10, 03000h       ; ULONG       AllocationType (MEM_COMMIT|MEM_RESERVE)
     mov [rsp + 028h], r10 ; Stack pointer for AllocationType
-    jmp rax               ; Jump to  pSyscallInstruction
+    mov eax, [rbx + 024h] ; DWORD       dwSsn
+    mov r10, [rbx + 08h]
+    jmp r11               ; Jump to  pSyscallInstruction
 ProxyIndirect ENDP
 
 end
