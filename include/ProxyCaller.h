@@ -2,6 +2,9 @@
 #define LSASSC_PROXYCALLER_H
 
 #include <windows.h>
+#include "Macros.h"
+
+#define MAX_SYSCALL_ARGS 16
 
 typedef struct _NTALLOCATEVIRTUALMEMORY_ARGS {
     UINT_PTR pNtAllocateVirtualMemory;   // pointer to NtAllocateVirtualMemory - rax
@@ -19,6 +22,20 @@ typedef struct _NTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS {
     ULONG       ulProtect;
     DWORD       dwSsn;
 } NTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS, *PNTALLOCATEVIRTUALMEMORY_INDIRECT_ARGS;
+
+//typedef struct _SYSCALL_ARGS {
+//    UINT_PTR    pSyscallInstruction;
+//    DWORD       dwSsn;
+//    UINT_PTR    pArgs[MAX_SYSCALL_ARGS];
+//} SYSCALL_ARGS, *PSYSCALL_ARGS;
+
+template<UINT64 N>
+struct SYSCALL_ARGS {
+    UINT_PTR    pSyscallInstruction;
+    DWORD       dwSsn;
+    UINT64      argCount = N;
+    UINT_PTR    pArgs[N];
+};
 
 NTSYSAPI
 NTSTATUS
@@ -50,6 +67,7 @@ TpReleaseWork(
 
 EXTERN_C VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work);
 EXTERN_C VOID CALLBACK ProxyIndirect(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work);
+EXTERN_C VOID CALLBACK DynamicProxy(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work);
 
 
 #endif //LSASSC_PROXYCALLER_H

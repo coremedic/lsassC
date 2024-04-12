@@ -35,6 +35,7 @@ add_executable(
         include/Syscalls.h
         include/Constexpr.h
         src/Syscalls.c
+        src/ProxyCaller.cpp
 )
 
 set(ASM_SOURCE_FILES asm/x64/ProxyCaller.asm)
