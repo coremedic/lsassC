@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(lsassC)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 include_directories(include)
@@ -30,12 +30,14 @@ set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
 add_executable(
         lsassC
         src/Main.c
+        src/Syscalls.c
+        src/ProxyCaller.cpp
         include/Macros.h
         include/ProxyCaller.h
         include/Syscalls.h
         include/Constexpr.h
-        src/Syscalls.c
-        src/ProxyCaller.cpp
+        include/Common.h
+        include/Native.h
 )
 
 set(ASM_SOURCE_FILES asm/x64/ProxyCaller.asm)

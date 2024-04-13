@@ -1,5 +1,4 @@
 #include "Syscalls.h"
-#include "Constexpr.h"
 
 #define STUB_SIZE       0x20
 
@@ -13,9 +12,6 @@
 #define MOV2_OPCODE     0xB8
 #define JMP_OPCODE      0xE9
 #define RET_OPCODE      0xC3
-
-MODULE_CONFIG g_ntdllConf    = {NULL};
-MODULE_CONFIG g_win32uConf   = {NULL};
 
 unsigned int GenerateRandomInt() {
     static unsigned int state = 123456789;
@@ -63,7 +59,7 @@ BOOL InitModuleConfig(_Out_ PMODULE_CONFIG pModuleConfig, _In_ ULONG_PTR pBaseAd
 }
 
 // Find that syscall instruction
-BOOL FindSyscallInstruction(_Out_ PVOID* ppSyscallInstructionAddress) {
+BOOL FindSyscallInstruction(_In_ PINSTANCE pInstance, _Out_ PVOID* ppSyscallInstructionAddress) {
     if (!ppSyscallInstructionAddress) {
         return FALSE;
     }
@@ -71,8 +67,8 @@ BOOL FindSyscallInstruction(_Out_ PVOID* ppSyscallInstructionAddress) {
     int idx = GenerateRandomInt() % 16,
         cnt = 0;
 
-    if (!g_win32uConf.bInit) {
-        if (!InitModuleConfig(&g_win32uConf, (ULONG_PTR)GetModuleHandleA("win32u.dll"))) {
+    if (!pInstance->Win32.Modules.Win32u.bInit) {
+        if (!InitModuleConfig(&pInstance->Win32.Modules.Win32u, (ULONG_PTR)GetModuleHandleA("win32u.dll"))) {
             return FALSE;
         }
     }

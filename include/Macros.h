@@ -13,8 +13,9 @@
 #define SEC_GLOBAL __attribute__((section(".global")))
 
 // Casting macros
-#define C_PTR(x) ((PVOID)    (x))
-#define U_PTR(x) ((UINT_PTR) (x))
+#define C_PTR(x)  ((PVOID)     (x))
+#define U_PTR(x)  ((UINT_PTR)  (x))
+#define D_TYPE(x) __typeof__(x) *x;
 
 // Dereference macros
 #define C_DEF(x)   (*(PVOID*) (x))
@@ -24,5 +25,6 @@
 #define INLINE            inline
 #define STATIC            static
 #define EXTERN            extern
+#define AUTO              auto
 
 #endif //LSASSC_MACROS_H

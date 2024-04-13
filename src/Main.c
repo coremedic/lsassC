@@ -42,6 +42,9 @@ int main() {
     syscallArgs.pArgs[5]            = U_PTR(PAGE_EXECUTE_READWRITE);
     printf("%llu\n", syscallArgs.argCount);
 
+    SYSCALL<6, TpAllocWork> tpAllocWork;
+    tpAllocWork.
+
 
     __typeof__(TpAllocWork)*    TpAllocWork     = (PVOID)GetProcAddress(GetModuleHandleA("ntdll.dll"), "TpAllocWork");
     __typeof__(TpPostWork)*     TpPostWork      = (PVOID)GetProcAddress(GetModuleHandleA("ntdll.dll"), "TpPostWork");

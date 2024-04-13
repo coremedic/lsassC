@@ -2,7 +2,7 @@
 #define LSASSC_CONSTEXPR_H
 
 #include <windows.h>
-#include "Macros.h"
+#include "Common.h"
 
 #define HASHA(string) HashStringA((string))
 
