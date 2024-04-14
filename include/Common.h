@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include "Native.h"
+#include "Constexpr.h"
 #include "ProxyCaller.h"
 #include "Macros.h"
 
@@ -18,10 +19,8 @@ typedef struct _MODULE_CONFIG {
 typedef struct _INSTANCE  {
     struct {
         struct {
-            SYSCALL<6, NtAllocateVirtualMemory>
-                    NtAllocateVirtualMemory;
-            SYSCALL<5, NtQueryInformationProcess>
-                    NtQueryInformationProcess;
+            SYSCALL<6>NtAllocateVirtualMemory;
+            SYSCALL<5>NtQueryInformationProcess;
         } Api;
 
         struct {
@@ -31,5 +30,7 @@ typedef struct _INSTANCE  {
     } Win32;
 
 } INSTANCE, *PINSTANCE;
+
+EXTERN PINSTANCE Instance;
 
 #endif //LSASSC_COMMON_H

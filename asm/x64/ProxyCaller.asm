@@ -46,23 +46,3 @@ syscall_jmp:
 ProxyCaller ENDP
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-   ; lea rdx, [r9 + 08h]
-   ; mov rcx, [rdx]
-   ; lea rdx, [r9 + r8*8]
-   ; lea rdx, [rsp + 028h + r8*8]
-   ; mov [rdx], rcx
-    ;dec r8
-    ;jns stack_args

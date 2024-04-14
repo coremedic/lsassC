@@ -29,12 +29,10 @@ set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
 
 add_executable(
         lsassC
-        src/Main.c
-        src/Syscalls.c
+        src/Main.cpp
         src/ProxyCaller.cpp
         include/Macros.h
         include/ProxyCaller.h
-        include/Syscalls.h
         include/Constexpr.h
         include/Common.h
         include/Native.h

