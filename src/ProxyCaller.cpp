@@ -1,4 +1,3 @@
-#include "ProxyCaller.h"
 #include "Common.h"
 
 #define STUB_SIZE       0x20
@@ -189,6 +188,10 @@ BOOL InitSyscalls() {
     }
 
     if (!InitModuleConfig(&Instance->Win32.Modules.Win32u, (ULONG_PTR)GetModuleHandleA("win32u.dll"))) {
+        return FALSE;
+    }
+
+    if (!Instance->Win32.Api.ProxyLoader.Init()) {
         return FALSE;
     }
 

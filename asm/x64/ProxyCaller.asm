@@ -4,10 +4,12 @@ option casemap:none
 option win64:1
 
 public ProxyCaller
+public ProxyLoader
 
 .code
 
 ProxyCaller PROC
+
     mov rbx, rdx                     ; Back up struct to rbx
     mov r11, [rbx]                   ; UINT_PTR      pSyscallInstruction
     mov eax, [rbx + 08h]             ; DWORD         dwSsn
@@ -44,5 +46,14 @@ syscall_jmp:
     jmp r11                          ; Jump to pSyscallInstruction
 
 ProxyCaller ENDP
+
+ProxyLoader PROC
+
+    mov r11, [rdx]                   ; UINT_PTR fnpLoadLibrary
+    mov rcx, [rdx + 08h]             ; PCHAR    pLibrary
+    xor rdx, rdx
+    jmp r11
+
+ProxyLoader ENDP
 
 end

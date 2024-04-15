@@ -1,8 +1,4 @@
-#include <windows.h>
-#include <cstdio>
-#include <shlobj.h>
 #include "Common.h"
-#include "ProxyCaller.h"
 #pragma comment (lib, "shell32.lib")
 
 INSTANCE _Instance = {NULL};
@@ -18,7 +14,6 @@ VOID AddWin32uToIat() {
 }
 
 int main() {
-    UINT_PTR pArgs[6];
     PVOID   pAddress  = NULL;
     SIZE_T  memSize   = 4096;
 
@@ -27,14 +22,14 @@ int main() {
         return 0;
     }
 
-    pArgs[0] = U_PTR(NtCurrentProcess());
-    pArgs[1] = U_PTR(&pAddress);
-    pArgs[2] = U_PTR(NULL);
-    pArgs[3] = U_PTR(&memSize);
-    pArgs[4] = U_PTR((MEM_COMMIT|MEM_RESERVE));
-    pArgs[5] = U_PTR(PAGE_EXECUTE_READWRITE);
-
-    Instance->Win32.Api.NtAllocateVirtualMemory.ProxyCall(pArgs);
+    Instance->Win32.Api.NtAllocateVirtualMemory.ProxyCall(
+            U_PTR(NtCurrentProcess()),
+            U_PTR(&pAddress),
+            U_PTR(NULL),
+            U_PTR(&memSize),
+            U_PTR((MEM_COMMIT|MEM_RESERVE)),
+            U_PTR(PAGE_EXECUTE_READWRITE)
+            );
 
     printf("Memory allocated at: %p\n", pAddress);
     getchar();
