@@ -37,6 +37,8 @@ add_executable(
         include/Instance.h
         include/Native.h
         include/Common.h
+        src/Util.cpp
+        include/Util.h
 )
 
 set(ASM_SOURCE_FILES asm/x64/ProxyCaller.asm)

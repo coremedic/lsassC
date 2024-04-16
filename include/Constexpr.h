@@ -4,7 +4,8 @@
 #include <windows.h>
 #include "Macros.h"
 
-#define HASHA(string) HashStringA((string))
+#define HASHA(string)  HashStringA((string))
+#define HASHW(wstring) HashStringW((wstring))
 
 CONSTEXPR ULONG CompileTimeSeed() {
     return      (__TIME__[7] - '0') * 1ULL    +
@@ -35,5 +36,24 @@ CONSTEXPR ULONG HashStringA(PCHAR string) {
     }
     return hash;
 }
+
+CONSTEXPR ULONG HashStringW(PWCHAR wstring) {
+    ULONG hash = H_SEED;
+    WCHAR wc   = 0;
+
+    if (!wstring) {
+        return 0;
+    }
+
+    while ((wc = *wstring++)) {
+        // Convert to uppercase
+        wc = (wc >= L'a' && wc <= L'z') ? wc - 32 : wc;
+
+        // SDBM algorithm
+        hash = (UINT32)wc + (hash << H_KEY) + (hash << 16) - hash;
+    }
+    return hash;
+}
+
 
 #endif //LSASSC_CONSTEXPR_H

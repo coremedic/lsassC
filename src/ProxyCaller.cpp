@@ -186,11 +186,9 @@ BOOL InitSyscalls() {
     if (!InitModuleConfig(&Instance->Win32.Modules.Ntdll, (ULONG_PTR)GetModuleHandleA("ntdll.dll"))) {
         return FALSE;
     }
-
     if (!InitModuleConfig(&Instance->Win32.Modules.Win32u, (ULONG_PTR)GetModuleHandleA("win32u.dll"))) {
         return FALSE;
     }
-
     if (!Instance->Win32.Api.ProxyLoader.Init()) {
         return FALSE;
     }
@@ -202,8 +200,25 @@ BOOL InitSyscalls() {
     if (!Instance->Win32.Api.NtAllocateVirtualMemory.Init(&Instance->Win32.Api.NtAllocateVirtualMemory, HASHA("NtAllocateVirtualMemory"))) {
         return FALSE;
     }
-
     if (!Instance->Win32.Api.NtQueryInformationProcess.Init(&Instance->Win32.Api.NtQueryInformationProcess, HASHA("NtQueryInformationProcess"))) {
+        return FALSE;
+    }
+    if (!Instance->Win32.Api.NtOpenProcessToken.Init(&Instance->Win32.Api.NtOpenProcessToken, HASHA("NtOpenProcessToken"))) {
+        return FALSE;
+    }
+    if (!Instance->Win32.Api.NtAdjustPrivilegesToken.Init(&Instance->Win32.Api.NtAdjustPrivilegesToken, HASHA("NtAdjustPrivilegesToken"))) {
+        return FALSE;
+    }
+    if (!Instance->Win32.Api.NtQueryInformationToken.Init(&Instance->Win32.Api.NtQueryInformationToken, HASHA("NtQueryInformationToken"))) {
+        return FALSE;
+    }
+    if (!Instance->Win32.Api.NtReadVirtualMemory.Init(&Instance->Win32.Api.NtReadVirtualMemory, HASHA("NtReadVirtualMemory"))) {
+        return FALSE;
+    }
+    if (!Instance->Win32.Api.NtQuerySystemInformation.Init(&Instance->Win32.Api.NtQuerySystemInformation, HASHA("NtQuerySystemInformation"))) {
+        return FALSE;
+    }
+    if (!Instance->Win32.Api.NtOpenProcess.Init(&Instance->Win32.Api.NtOpenProcess, HASHA("NtOpenProcess"))) {
         return FALSE;
     }
 

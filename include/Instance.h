@@ -13,28 +13,36 @@ typedef struct _MODULE_CONFIG {
     PWORD       pwArrayOfOrdinals;
     DWORD       dwNumberOfNames;
     ULONG_PTR   pModule;
-    BOOLEAN     bInit;
 } MODULE_CONFIG, *PMODULE_CONFIG;
 
 typedef struct _INSTANCE  {
     struct {
         struct {
-            PROXYLOAD ProxyLoader;
-            SYSCALL<6>NtAllocateVirtualMemory;
-            SYSCALL<5>NtQueryInformationProcess;
+            PROXYLOAD
+            ProxyLoader;
+            SYSCALL<6>
+            NtAllocateVirtualMemory;
+            SYSCALL<6>
+            NtAdjustPrivilegesToken;
+            SYSCALL<5>
+            NtQueryInformationProcess;
+            SYSCALL<5>
+            NtQueryInformationToken;
+            SYSCALL<5>
+            NtReadVirtualMemory;
+            SYSCALL<4>
+            NtQuerySystemInformation;
+            SYSCALL<4>
+            NtOpenProcess;
+            SYSCALL<3>
+            NtOpenProcessToken;
         } Api;
 
         struct {
             MODULE_CONFIG Ntdll;
             MODULE_CONFIG Win32u;
         } Modules;
-
     } Win32;
-
-    struct {
-
-    } ;
-
 } INSTANCE, *PINSTANCE;
 
 EXTERN PINSTANCE Instance;

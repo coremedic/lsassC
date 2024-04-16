@@ -7,12 +7,6 @@ PINSTANCE Instance = &_Instance;
 HELPER _Helper  = {NULL};
 PHELPER pHelper = &_Helper;
 
-VOID AddWin32uToIat() {
-
-    WCHAR szPath[MAX_PATH] = { 0 };
-    SHGetFolderPathW(NULL, CSIDL_MYVIDEO, NULL, NULL, szPath);
-}
-
 int main() {
     PVOID   pAddress  = NULL;
     SIZE_T  memSize   = 4096;
@@ -20,6 +14,10 @@ int main() {
     AddWin32uToIat();
     if (!InitSyscalls()) {
         return 0;
+    }
+
+    if (!SetSeDebugPrivilege()) {
+        printf("[!] Failed to set SeDebugPrivilege\n");
     }
 
     Instance->Win32.Api.NtAllocateVirtualMemory.ProxyCall(
