@@ -16,6 +16,7 @@
 #define C_PTR(x)  ((PVOID)     (x))
 #define U_PTR(x)  ((UINT_PTR)  (x))
 #define D_TYPE(x) __typeof__(x) *x;
+#define C_PTR_PTR(x) ((PVOID*) (x))
 
 // Dereference macros
 #define C_DEF(x)   (*(PVOID*) (x))

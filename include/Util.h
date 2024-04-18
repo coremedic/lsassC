@@ -6,6 +6,6 @@
 VOID AddWin32uToIat();
 BOOL FormatUnicodeString(_In_ CONST UNICODE_STRING* pUnicodeString, _Out_ PWCHAR* ppszWideString);
 BOOL SetSeDebugPrivilege();
-BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess);
+BOOL OpenProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK accessMask);
 
 #endif //LSASSC_UTIL_H

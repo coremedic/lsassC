@@ -31,10 +31,19 @@ BOOL FormatUnicodeString(_In_ CONST UNICODE_STRING* pUnicodeString, _Out_ PWCHAR
     return TRUE;
 }
 
+/*!
+ * @brief
+ * Enables the SeDebugPrivilege
+ * on the current process
+ *
+ * @return
+ * TRUE if successful,
+ * FALSE if unsuccessful
+ */
 BOOL SetSeDebugPrivilege() {
     HANDLE              hToken              =  NULL;
     BOOL                bHasChecked         =  FALSE,
-            bResult             =  FALSE;
+                        bResult             =  FALSE;
     PTOKEN_PRIVILEGES   pTokenPrivileges    =  NULL;
     TOKEN_ELEVATION     tokenElevation      = {NULL};
     DWORD               tokenElevationSize  = sizeof(TOKEN_ELEVATION),
@@ -130,15 +139,37 @@ BOOL SetSeDebugPrivilege() {
     return bResult;
 }
 
-BOOL EnumerateProcesses(_Out_ PSYSTEM_PROCESS_INFORMATION* ppSystemProcessInformation) {
-    ULONG   ulArrayLength   = 0;
+/*!
+ * @brief
+ * Query system information
+ * on specified SYSTEM_INFORMATION_CLASS
+ *
+ * @tparam SysInfoType
+ * SYSTEM_INFORMATION_CLASS
+ * field type
+ *
+ * @tparam SysInfoClass
+ * SYSTEM_INFORMATION_CLASS
+ * field enum
+ *
+ * @param ppSysInfo
+ * Pointer to a
+ * SysInfoType pointer
+ *
+ * @return
+ * TRUE if successful,
+ * FALSE if unsuccessful
+ */
+template<typename SysInfoType, SYSTEM_INFORMATION_CLASS SysInfoClass>
+BOOL QuerySystemInformation(_Out_ SysInfoType** ppSysInfo) {
+    ULONG ulArrayLength = 0;
 
-    if (!ppSystemProcessInformation) {
+    if (!ppSysInfo) {
         return FALSE;
     }
 
     Instance->Win32.Api.NtQuerySystemInformation.ProxyCall(
-            U_PTR(SystemProcessInformation),
+            U_PTR(SysInfoClass),
             U_PTR(NULL),
             U_PTR(NULL),
             U_PTR(&ulArrayLength)
@@ -149,20 +180,20 @@ BOOL EnumerateProcesses(_Out_ PSYSTEM_PROCESS_INFORMATION* ppSystemProcessInform
         return FALSE;
     }
 
-    *ppSystemProcessInformation = (PSYSTEM_PROCESS_INFORMATION)malloc(ulArrayLength + 2048);
-    if (!*ppSystemProcessInformation) {
-        printf("[!] Failed to allocate memory for SYSTEM_PROCESS_INFORMATION\n");
+    *ppSysInfo = (SysInfoType*)malloc(ulArrayLength);
+    if (!*ppSysInfo) {
+        printf("[!] Failed to allocate memory for information structure\n");
         return FALSE;
     }
 
     Instance->Win32.Api.NtQuerySystemInformation.ProxyCall(
-            U_PTR(SystemProcessInformation),
-            U_PTR(*ppSystemProcessInformation),
+            U_PTR(SysInfoClass),
+            U_PTR(*ppSysInfo),
             U_PTR(ulArrayLength),
             U_PTR(NULL)
     );
 
-    if (!(*ppSystemProcessInformation)->NextEntryOffset) {
+    if (!*ppSysInfo) {
         printf("[!] NtQuerySystemInformation call failed\n");
         return FALSE;
     }
@@ -170,10 +201,30 @@ BOOL EnumerateProcesses(_Out_ PSYSTEM_PROCESS_INFORMATION* ppSystemProcessInform
     return TRUE;
 }
 
-BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess) {
-    ULONG                           ulArrayLength               = 0;
+/*!
+ * @breif
+ * Open process handle
+ * with NtOpenProcess
+ *
+ * @param ulProcessHash
+ * Hash of process name
+ * (with .exe extension)
+ *
+ * @param pdwProcessID
+ * Pointer to DWORD
+ * for PID of process
+ *
+ * @param phProcess
+ * Pointer to HANDLE
+ * for process handle
+ *
+ * @return
+ * TRUE if successful,
+ * FALSE if unsuccessful
+ */
+BOOL OpenProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK accessMask) {
     BOOL                            bResult                     = FALSE;
-    PVOID*                          ppTempPtr                   = NULL;
+    PVOID                           pTempPtr                    = NULL;
     PSYSTEM_PROCESS_INFORMATION     pSystemProcessInformation   = NULL;
     OBJECT_ATTRIBUTES               objectAttributes            = {NULL};
     CLIENT_ID                       clientId                    = {NULL};
@@ -183,12 +234,11 @@ BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_
         return bResult;
     }
 
-
-    //ppTempPtr = C_PTR(pSystemProcessInformation);
-    if (!EnumerateProcesses(&pSystemProcessInformation)) {
+    if (!QuerySystemInformation<SYSTEM_PROCESS_INFORMATION, SystemProcessInformation>(&pSystemProcessInformation)) {
+        pTempPtr = pSystemProcessInformation;
         goto EXIT;
     }
-    //pTempPtr = C_PTR(pSystemProcessInformation);
+    pTempPtr = pSystemProcessInformation;
 
     while(pSystemProcessInformation->NextEntryOffset) {
         if (!pSystemProcessInformation->ImageName.Length || pSystemProcessInformation->ImageName.Length >= MAX_PATH) {
@@ -196,13 +246,13 @@ BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_
         }
 
         if (HashStringW(pSystemProcessInformation->ImageName.Buffer) == ulProcessHash) {
-            *pdwProcessID = (DWORD)pSystemProcessInformation->UniqueProcessId;
+            *pdwProcessID = HandleToULong(pSystemProcessInformation->UniqueProcessId);
 
             clientId.UniqueProcess = pSystemProcessInformation->UniqueProcessId;
             clientId.UniqueThread  = 0;
             Instance->Win32.Api.NtOpenProcess.ProxyCall(
                     U_PTR(phProcess),
-                    U_PTR((PROCESS_QUERY_INFORMATION|PROCESS_VM_READ)),
+                    U_PTR(accessMask),
                     U_PTR(&objectAttributes),
                     U_PTR(&clientId)
                     );
@@ -220,8 +270,44 @@ BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_
     }
 
     EXIT:
-    if (*pTempPtr) {
+    if (pTempPtr) {
         free(pTempPtr);
     }
     return bResult;
+}
+
+/*!
+ *
+ */
+BOOL DuplicateProcessHandle(_In_ DWORD dwProcessID, _In_ DWORD dwProcessHandleID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK desiredAccessMask) {
+    BOOL                            bResult                     = FALSE;
+    HANDLE                          hDupProc                    = NULL;
+    PVOID                           pTempPtr                    = NULL;
+    PSYSTEM_HANDLE_INFORMATION      pSystemHandleInformation    = NULL;
+
+    if (!dwProcessID || !phProcess) {
+        return bResult;
+    }
+
+    if (!QuerySystemInformation<SYSTEM_HANDLE_INFORMATION, SystemHandleInformation>(&pSystemHandleInformation)) {
+        pTempPtr = pSystemHandleInformation;
+        goto EXIT;
+    }
+    pTempPtr = pSystemHandleInformation;
+
+    for (DWORD i = 0; i < pSystemHandleInformation->Count; ++i) {
+        if (pSystemHandleInformation->Handle[i].OwnerPid != dwProcessID) {
+            Instance->Win32.Api.NtOpenProcess.ProxyCall(
+                    //U_PTR()
+                    );
+        }
+    }
+
+    EXIT:
+    if (pTempPtr) {
+        free(pTempPtr);
+    }
+    return bResult;
+
+
 }
