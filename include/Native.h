@@ -50,4 +50,28 @@ NtQueryInformationProcess(
         _Out_opt_ PULONG ReturnLength
 );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDuplicateObject(
+        _In_ HANDLE SourceProcessHandle,
+        _In_ HANDLE SourceHandle,
+        _In_opt_ HANDLE TargetProcessHandle,
+        _Out_opt_ PHANDLE TargetHandle,
+        _In_ ACCESS_MASK DesiredAccess,
+        _In_ ULONG HandleAttributes,
+        _In_ ULONG Options
+);
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryObject(
+        _In_opt_ HANDLE Handle,
+        _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
+        _Out_writes_bytes_opt_(ObjectInformationLength) PVOID ObjectInformation,
+        _In_ ULONG ObjectInformationLength,
+        _Out_opt_ PULONG ReturnLength
+);
+
 #endif //LSASSC_NATIVE_H

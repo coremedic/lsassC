@@ -203,6 +203,57 @@ BOOL QuerySystemInformation(_Out_ SysInfoType** ppSysInfo) {
 
 /*!
  * @breif
+ * Fetch unique process ID
+ * of process
+ *
+ * @param ulProcessHash
+ * Hash of process name
+ *
+ * @return
+ * Unique process ID
+ */
+DWORD FetchProcessID(_In_ ULONG ulProcessHash, _Out_ PHANDLE phProcessID) {
+    DWORD                           dwProcessID                 = 0;
+    PVOID                           pTempPtr                    = NULL;
+    PSYSTEM_PROCESS_INFORMATION     pSystemProcessInformation   = NULL;
+
+    if (!ulProcessHash) {
+        goto EXIT;
+    }
+
+    if (!QuerySystemInformation<SYSTEM_PROCESS_INFORMATION, SystemProcessInformation>(&pSystemProcessInformation)) {
+        pTempPtr = pSystemProcessInformation;
+        goto EXIT;
+    }
+    pTempPtr = pSystemProcessInformation;
+
+    while(pSystemProcessInformation->NextEntryOffset) {
+        if (!pSystemProcessInformation->ImageName.Length || pSystemProcessInformation->ImageName.Length >= MAX_PATH) {
+            goto NEXT;
+        }
+
+        if (HashStringW(pSystemProcessInformation->ImageName.Buffer) == ulProcessHash) {
+            if (phProcessID) {
+                *phProcessID = pSystemProcessInformation->UniqueProcessId;
+            }
+
+            dwProcessID = HandleToULong(pSystemProcessInformation->UniqueProcessId);
+            goto EXIT;
+        }
+
+        NEXT:
+        pSystemProcessInformation = (PSYSTEM_PROCESS_INFORMATION)(U_PTR(pSystemProcessInformation) + pSystemProcessInformation->NextEntryOffset);
+    }
+
+    EXIT:
+    if (pTempPtr) {
+        free(pTempPtr);
+    }
+    return dwProcessID;
+}
+
+/*!
+ * @breif
  * Open process handle
  * with NtOpenProcess
  *
@@ -218,62 +269,44 @@ BOOL QuerySystemInformation(_Out_ SysInfoType** ppSysInfo) {
  * Pointer to HANDLE
  * for process handle
  *
+ * @param accessMask
+ * Desired access mask
+ * for process handle
+ *
  * @return
  * TRUE if successful,
  * FALSE if unsuccessful
  */
 BOOL OpenProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK accessMask) {
-    BOOL                            bResult                     = FALSE;
-    PVOID                           pTempPtr                    = NULL;
-    PSYSTEM_PROCESS_INFORMATION     pSystemProcessInformation   = NULL;
     OBJECT_ATTRIBUTES               objectAttributes            = {NULL};
     CLIENT_ID                       clientId                    = {NULL};
+    HANDLE                          hProcessID                  = NULL;
 
 
     if (!ulProcessHash || !pdwProcessID || !phProcess) {
-        return bResult;
+        return FALSE;
     }
 
-    if (!QuerySystemInformation<SYSTEM_PROCESS_INFORMATION, SystemProcessInformation>(&pSystemProcessInformation)) {
-        pTempPtr = pSystemProcessInformation;
-        goto EXIT;
-    }
-    pTempPtr = pSystemProcessInformation;
-
-    while(pSystemProcessInformation->NextEntryOffset) {
-        if (!pSystemProcessInformation->ImageName.Length || pSystemProcessInformation->ImageName.Length >= MAX_PATH) {
-            goto NEXT;
-        }
-
-        if (HashStringW(pSystemProcessInformation->ImageName.Buffer) == ulProcessHash) {
-            *pdwProcessID = HandleToULong(pSystemProcessInformation->UniqueProcessId);
-
-            clientId.UniqueProcess = pSystemProcessInformation->UniqueProcessId;
-            clientId.UniqueThread  = 0;
-            Instance->Win32.Api.NtOpenProcess.ProxyCall(
-                    U_PTR(phProcess),
-                    U_PTR(accessMask),
-                    U_PTR(&objectAttributes),
-                    U_PTR(&clientId)
-                    );
-
-            if (!*phProcess) {
-                printf("[!] NtOpenProcess call failed\n");
-                goto EXIT;
-            }
-            bResult = TRUE;
-            break;
-        }
-
-        NEXT:
-        pSystemProcessInformation = (PSYSTEM_PROCESS_INFORMATION)(U_PTR(pSystemProcessInformation) + pSystemProcessInformation->NextEntryOffset);
+    *pdwProcessID = FetchProcessID(ulProcessHash, &hProcessID);
+    if (!*pdwProcessID || !hProcessID) {
+        return FALSE;
     }
 
-    EXIT:
-    if (pTempPtr) {
-        free(pTempPtr);
+    clientId.UniqueProcess = hProcessID;
+    clientId.UniqueThread  = 0;
+    Instance->Win32.Api.NtOpenProcess.ProxyCall(
+            U_PTR(phProcess),
+            U_PTR(accessMask),
+            U_PTR(&objectAttributes),
+            U_PTR(&clientId)
+    );
+
+    if (!*phProcess) {
+        printf("[!] NtOpenProcess call failed\n");
+        return FALSE;
     }
-    return bResult;
+
+    return TRUE;
 }
 
 /*!

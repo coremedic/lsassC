@@ -20,6 +20,8 @@ typedef struct _INSTANCE  {
         struct {
             PROXYLOAD
             ProxyLoader;
+            SYSCALL<7>
+            NtDuplicateObject;
             SYSCALL<6>
             NtAllocateVirtualMemory;
             SYSCALL<6>
@@ -30,6 +32,8 @@ typedef struct _INSTANCE  {
             NtQueryInformationToken;
             SYSCALL<5>
             NtReadVirtualMemory;
+            SYSCALL<5>
+            NtQueryObject;
             SYSCALL<4>
             NtQuerySystemInformation;
             SYSCALL<4>
