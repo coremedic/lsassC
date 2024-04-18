@@ -6,6 +6,31 @@ VOID AddWin32uToIat() {
     SHGetFolderPathW(NULL, CSIDL_MYVIDEO, NULL, NULL, szPath);
 }
 
+BOOL FormatUnicodeString(_In_ CONST UNICODE_STRING* pUnicodeString, _Out_ PWCHAR* ppszWideString) {
+    if (!pUnicodeString || !pUnicodeString->Buffer || !ppszWideString) {
+        return FALSE;
+    }
+    
+    if (pUnicodeString->Length < pUnicodeString->MaximumLength && pUnicodeString->Buffer[pUnicodeString->Length / sizeof(WCHAR)] == L'\0') {
+        *ppszWideString = (PWCHAR)malloc(pUnicodeString->Length);
+        if (!*ppszWideString) {
+            return FALSE;
+        }
+
+        memcpy(*ppszWideString, pUnicodeString->Buffer, pUnicodeString->Length);
+    } else {
+        *ppszWideString = (PWCHAR)malloc(pUnicodeString->Length + sizeof(WCHAR));
+        if (!*ppszWideString) {
+            return FALSE;
+        }
+
+        memcpy(*ppszWideString, pUnicodeString->Buffer, pUnicodeString->Length);
+        *ppszWideString[pUnicodeString->Length / sizeof(WCHAR)] = L'\0';
+    }
+
+    return TRUE;
+}
+
 BOOL SetSeDebugPrivilege() {
     HANDLE              hToken              =  NULL;
     BOOL                bHasChecked         =  FALSE,
@@ -105,44 +130,65 @@ BOOL SetSeDebugPrivilege() {
     return bResult;
 }
 
+BOOL EnumerateProcesses(_Out_ PSYSTEM_PROCESS_INFORMATION* ppSystemProcessInformation) {
+    ULONG   ulArrayLength   = 0;
+
+    if (!ppSystemProcessInformation) {
+        return FALSE;
+    }
+
+    Instance->Win32.Api.NtQuerySystemInformation.ProxyCall(
+            U_PTR(SystemProcessInformation),
+            U_PTR(NULL),
+            U_PTR(NULL),
+            U_PTR(&ulArrayLength)
+    );
+
+    if (!ulArrayLength) {
+        printf("[!] NtQuerySystemInformation call failed\n");
+        return FALSE;
+    }
+
+    *ppSystemProcessInformation = (PSYSTEM_PROCESS_INFORMATION)malloc(ulArrayLength + 2048);
+    if (!*ppSystemProcessInformation) {
+        printf("[!] Failed to allocate memory for SYSTEM_PROCESS_INFORMATION\n");
+        return FALSE;
+    }
+
+    Instance->Win32.Api.NtQuerySystemInformation.ProxyCall(
+            U_PTR(SystemProcessInformation),
+            U_PTR(*ppSystemProcessInformation),
+            U_PTR(ulArrayLength),
+            U_PTR(NULL)
+    );
+
+    if (!(*ppSystemProcessInformation)->NextEntryOffset) {
+        printf("[!] NtQuerySystemInformation call failed\n");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess) {
-    ULONG                           ulArrayLenth                = 0;
+    ULONG                           ulArrayLength               = 0;
     BOOL                            bResult                     = FALSE;
+    PVOID*                          ppTempPtr                   = NULL;
     PSYSTEM_PROCESS_INFORMATION     pSystemProcessInformation   = NULL;
+    OBJECT_ATTRIBUTES               objectAttributes            = {NULL};
+    CLIENT_ID                       clientId                    = {NULL};
+
 
     if (!ulProcessHash || !pdwProcessID || !phProcess) {
         return bResult;
     }
 
-    Instance->Win32.Api.NtQuerySystemInformation.ProxyCall(
-            U_PTR(SystemProcessInformation),
-            U_PTR(NULL),
-            U_PTR(NULL),
-            U_PTR(&ulArrayLenth)
-            );
 
-    if (!ulArrayLenth) {
-        printf("[!] NtQuerySystemInformation call failed\n");
-        return bResult;
-    }
-
-    pSystemProcessInformation = (PSYSTEM_PROCESS_INFORMATION)malloc(ulArrayLenth);
-    if (!pSystemProcessInformation) {
-        printf("[!] Failed to allocate memory for SYSTEM_PROCESS_INFORMATION\n");
-        return bResult;
-    }
-
-    Instance->Win32.Api.NtQuerySystemInformation.ProxyCall(
-            U_PTR(SystemProcessInformation),
-            U_PTR(pSystemProcessInformation),
-            U_PTR(ulArrayLenth),
-            U_PTR(NULL)
-    );
-
-    if (!pSystemProcessInformation->NextEntryOffset) {
-        printf("[!] NtQuerySystemInformation call failed\n");
+    //ppTempPtr = C_PTR(pSystemProcessInformation);
+    if (!EnumerateProcesses(&pSystemProcessInformation)) {
         goto EXIT;
     }
+    //pTempPtr = C_PTR(pSystemProcessInformation);
 
     while(pSystemProcessInformation->NextEntryOffset) {
         if (!pSystemProcessInformation->ImageName.Length || pSystemProcessInformation->ImageName.Length >= MAX_PATH) {
@@ -152,12 +198,21 @@ BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_
         if (HashStringW(pSystemProcessInformation->ImageName.Buffer) == ulProcessHash) {
             *pdwProcessID = (DWORD)pSystemProcessInformation->UniqueProcessId;
 
-            // TODO: WIP
+            clientId.UniqueProcess = pSystemProcessInformation->UniqueProcessId;
+            clientId.UniqueThread  = 0;
             Instance->Win32.Api.NtOpenProcess.ProxyCall(
                     U_PTR(phProcess),
-                    U_PTR((PROCESS_QUERY_INFORMATION | PROCESS_VM_READ))
+                    U_PTR((PROCESS_QUERY_INFORMATION|PROCESS_VM_READ)),
+                    U_PTR(&objectAttributes),
+                    U_PTR(&clientId)
                     );
 
+            if (!*phProcess) {
+                printf("[!] NtOpenProcess call failed\n");
+                goto EXIT;
+            }
+            bResult = TRUE;
+            break;
         }
 
         NEXT:
@@ -165,6 +220,8 @@ BOOL GetProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_
     }
 
     EXIT:
-    free(pSystemProcessInformation);
+    if (*pTempPtr) {
+        free(pTempPtr);
+    }
     return bResult;
 }
