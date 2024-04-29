@@ -1,12 +1,14 @@
 #include "Common.h"
 
-VOID AddWin32uToIat() {
+VOID
+AddWin32uToIat() {
 
     WCHAR szPath[MAX_PATH] = { 0 };
     SHGetFolderPathW(NULL, CSIDL_MYVIDEO, NULL, NULL, szPath);
 }
 
-BOOL FormatUnicodeString(_In_ CONST UNICODE_STRING* pUnicodeString, _Out_ PWCHAR* ppszWideString) {
+BOOL
+FormatUnicodeString(_In_ CONST UNICODE_STRING* pUnicodeString, _Out_ PWCHAR* ppszWideString) {
     if (!pUnicodeString || !pUnicodeString->Buffer || !ppszWideString) {
         return FALSE;
     }
@@ -40,7 +42,8 @@ BOOL FormatUnicodeString(_In_ CONST UNICODE_STRING* pUnicodeString, _Out_ PWCHAR
  * TRUE if successful,
  * FALSE if unsuccessful
  */
-BOOL SetSeDebugPrivilege() {
+BOOL
+SetSeDebugPrivilege() {
     HANDLE              hToken              =  NULL;
     BOOL                bHasChecked         =  FALSE,
                         bResult             =  FALSE;
@@ -161,7 +164,8 @@ BOOL SetSeDebugPrivilege() {
  * FALSE if unsuccessful
  */
 template<typename SysInfoType, SYSTEM_INFORMATION_CLASS SysInfoClass>
-BOOL QuerySystemInformation(_Out_ SysInfoType** ppSysInfo) {
+BOOL
+QuerySystemInformation(_Out_ SysInfoType** ppSysInfo) {
     ULONG ulArrayLength = 0;
 
     if (!ppSysInfo) {
@@ -212,7 +216,8 @@ BOOL QuerySystemInformation(_Out_ SysInfoType** ppSysInfo) {
  * @return
  * Unique process ID
  */
-DWORD FetchProcessID(_In_ ULONG ulProcessHash, _Out_ PHANDLE phProcessID) {
+DWORD
+FetchProcessID(_In_ ULONG ulProcessHash, _Out_opt_ PHANDLE phProcessID) {
     DWORD                           dwProcessID                 = 0;
     PVOID                           pTempPtr                    = NULL;
     PSYSTEM_PROCESS_INFORMATION     pSystemProcessInformation   = NULL;
@@ -264,6 +269,7 @@ DWORD FetchProcessID(_In_ ULONG ulProcessHash, _Out_ PHANDLE phProcessID) {
  * @param pdwProcessID
  * Pointer to DWORD
  * for PID of process
+ * optional
  *
  * @param phProcess
  * Pointer to HANDLE
@@ -277,19 +283,34 @@ DWORD FetchProcessID(_In_ ULONG ulProcessHash, _Out_ PHANDLE phProcessID) {
  * TRUE if successful,
  * FALSE if unsuccessful
  */
-BOOL OpenProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK accessMask) {
+BOOL
+OpenProcessHandle(_In_opt_ ULONG ulProcessHash, _Inout_opt_ PDWORD pdwProcessID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK accessMask) {
     OBJECT_ATTRIBUTES               objectAttributes            = {NULL};
     CLIENT_ID                       clientId                    = {NULL};
     HANDLE                          hProcessID                  = NULL;
 
-
-    if (!ulProcessHash || !pdwProcessID || !phProcess) {
+    if (!phProcess) {
         return FALSE;
     }
 
-    *pdwProcessID = FetchProcessID(ulProcessHash, &hProcessID);
-    if (!*pdwProcessID || !hProcessID) {
-        return FALSE;
+    if (!pdwProcessID) {
+        if (!ulProcessHash) {
+            return FALSE;
+        }
+        FetchProcessID(ulProcessHash, &hProcessID);
+        if (!hProcessID) {
+            return FALSE;
+        }
+    } else if (!*pdwProcessID) {
+        hProcessID = ULongToHandle(*pdwProcessID);
+    } else {
+        if (!ulProcessHash) {
+            return FALSE;
+        }
+        *pdwProcessID = FetchProcessID(ulProcessHash, &hProcessID);
+        if (!*pdwProcessID || !hProcessID) {
+            return FALSE;
+        }
     }
 
     clientId.UniqueProcess = hProcessID;
@@ -312,13 +333,20 @@ BOOL OpenProcessHandle(_In_ ULONG ulProcessHash, _Out_ PDWORD pdwProcessID, _Out
 /*!
  *
  */
-BOOL DuplicateProcessHandle(_In_ DWORD dwProcessID, _In_ DWORD dwProcessHandleID, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK desiredAccessMask) {
+BOOL
+DuplicateProcessHandle(_In_ ULONG ulTargetProcessHandleHash, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK desiredAccessMask) {
     BOOL                            bResult                     = FALSE;
+    DWORD                           dwProcessID                 = 0;
     HANDLE                          hDupProc                    = NULL;
     PVOID                           pTempPtr                    = NULL;
     PSYSTEM_HANDLE_INFORMATION      pSystemHandleInformation    = NULL;
 
-    if (!dwProcessID || !phProcess) {
+    if (!ulTargetProcessHandleHash || !phProcess) {
+        return bResult;
+    }
+
+    dwProcessID = FetchProcessID(ulTargetProcessHandleHash, NULL);
+    if (!dwProcessID) {
         return bResult;
     }
 
@@ -330,9 +358,15 @@ BOOL DuplicateProcessHandle(_In_ DWORD dwProcessID, _In_ DWORD dwProcessHandleID
 
     for (DWORD i = 0; i < pSystemHandleInformation->Count; ++i) {
         if (pSystemHandleInformation->Handle[i].OwnerPid != dwProcessID) {
-            Instance->Win32.Api.NtOpenProcess.ProxyCall(
-                    //U_PTR()
-                    );
+            if(!OpenProcessHandle(
+                    NULL,
+                    &dwProcessID,
+                    &hDupProc,
+                    PROCESS_DUP_HANDLE
+                    )) {
+                continue;
+            }
+            // TODO: NtDuplicateObject
         }
     }
 
@@ -341,6 +375,4 @@ BOOL DuplicateProcessHandle(_In_ DWORD dwProcessID, _In_ DWORD dwProcessHandleID
         free(pTempPtr);
     }
     return bResult;
-
-
 }
