@@ -335,30 +335,34 @@ OpenProcessHandle(_In_opt_ ULONG ulProcessHash, _Inout_opt_ PDWORD pdwProcessID,
  */
 BOOL
 DuplicateProcessHandle(_In_ ULONG ulTargetProcessHandleHash, _Out_ PHANDLE phProcess, _In_ ACCESS_MASK desiredAccessMask) {
-    BOOL                            bResult                     = FALSE;
-    DWORD                           dwProcessID                 = 0;
-    HANDLE                          hDupProc                    = NULL;
-    PVOID                           pTempPtr                    = NULL;
-    PSYSTEM_HANDLE_INFORMATION      pSystemHandleInformation    = NULL;
+    BOOL                            bResult                      = FALSE;
+    DWORD                           dwProcessID                  = 0;
+    HANDLE                          hDupProc                     = NULL;
+    PVOID                           pTempPtr                     = NULL;
+    PSYSTEM_HANDLE_INFORMATION      pSystemHandleInformation     = NULL;
+    PPUBLIC_OBJECT_TYPE_INFORMATION pPublicObjectTypeInformation = NULL;
 
     if (!ulTargetProcessHandleHash || !phProcess) {
         return bResult;
     }
 
+    // Fetch target process ID
     dwProcessID = FetchProcessID(ulTargetProcessHandleHash, NULL);
     if (!dwProcessID) {
         return bResult;
     }
 
+    // We need to get information on open handles
     if (!QuerySystemInformation<SYSTEM_HANDLE_INFORMATION, SystemHandleInformation>(&pSystemHandleInformation)) {
         pTempPtr = pSystemHandleInformation;
         goto EXIT;
     }
     pTempPtr = pSystemHandleInformation;
 
+    // Loop through handles, duplicate them, query information
     for (DWORD i = 0; i < pSystemHandleInformation->Count; ++i) {
         if (pSystemHandleInformation->Handle[i].OwnerPid != dwProcessID) {
-            if(!OpenProcessHandle(
+            if (!OpenProcessHandle(
                     NULL,
                     &dwProcessID,
                     &hDupProc,
@@ -366,13 +370,66 @@ DuplicateProcessHandle(_In_ ULONG ulTargetProcessHandleHash, _Out_ PHANDLE phPro
                     )) {
                 continue;
             }
-            // TODO: NtDuplicateObject
+
+            // Duplicate handle object
+            Instance->Win32.Api.NtDuplicateObject.ProxyCall(
+                    U_PTR(hDupProc),
+                    U_PTR(pSystemHandleInformation->Handle[i].HandleValue),
+                    U_PTR(NtCurrentProcess()),
+                    U_PTR(phProcess),
+                    U_PTR((PROCESS_QUERY_INFORMATION | PROCESS_CREATE_PROCESS)),
+                    U_PTR(NULL),
+                    U_PTR(NULL)
+                    );
+            if (!(*phProcess)) {
+                CloseHandle(hDupProc);
+                continue;
+            }
+
+            // Allocate memory for object type info
+            pPublicObjectTypeInformation = (PPUBLIC_OBJECT_TYPE_INFORMATION)malloc(1024);
+            if (!pPublicObjectTypeInformation) {
+                CloseHandle(hDupProc);
+                CloseHandle(*phProcess);
+                continue;
+            }
+
+            // Query handle object information
+            Instance->Win32.Api.NtQueryObject.ProxyCall(
+                    U_PTR(hDupProc),
+                    U_PTR(ObjectTypeInformation),
+                    U_PTR(pPublicObjectTypeInformation),
+                    U_PTR(1024),
+                    U_PTR(NULL)
+                    );
+            if (!pPublicObjectTypeInformation->TypeName.Buffer) {
+                CloseHandle(hDupProc);
+                CloseHandle(*phProcess);
+                free(pPublicObjectTypeInformation);
+                continue;
+            }
+
+            // Check if handle object is of "Process" type
+            if (!wcscmp(L"Process", pPublicObjectTypeInformation->TypeName.Buffer)) {
+                CloseHandle(hDupProc);
+                CloseHandle(*phProcess);
+                free(pPublicObjectTypeInformation);
+                continue;
+            }
+
+            // TODO: Get process ID from handle
         }
     }
 
     EXIT:
     if (pTempPtr) {
         free(pTempPtr);
+    }
+    if (pPublicObjectTypeInformation) {
+        free(pPublicObjectTypeInformation);
+    }
+    if (hDupProc) {
+        CloseHandle(hDupProc);
     }
     return bResult;
 }
