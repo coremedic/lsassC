@@ -30,15 +30,13 @@ set_source_files_properties(${ALL_C_FILES} PROPERTIES LANGUAGE CXX)
 add_executable(
         lsassC
         src/Main.cpp
-        src/ProxyCaller.cpp
         include/Macros.h
-        include/ProxyCaller.h
         include/Constexpr.h
         include/Instance.h
         include/Native.h
         include/Common.h
-        src/Util.cpp
-        include/Util.h
+        src/Init/Init.cpp
+        include/Init/Init.h
 )
 
 set(ASM_SOURCE_FILES asm/x64/ProxyCaller.asm)

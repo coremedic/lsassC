@@ -3,6 +3,8 @@
 
 #include <windows.h>
 
+typedef PVOID *PPVOID;
+
 NTSYSAPI
 NTSTATUS
 NTAPI
